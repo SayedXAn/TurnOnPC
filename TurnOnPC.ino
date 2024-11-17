@@ -31,6 +31,7 @@ void setup(){
 void loop() {
   if ((millis() - lastTime) > timerDelay) {
     if(WiFi.status()== WL_CONNECTED){
+      Serial.println("Loop a dhukse, API call hobe ekhon");
       HTTPClient http;
       String serverPath = serverName;
       http.begin(serverPath.c_str());
@@ -45,7 +46,7 @@ void loop() {
         Serial.println(payload);
       }
       else {
-        Serial.print("Error code: ");
+        Serial.print("Ekhane theke Error code ashtese: ");
         Serial.println(httpResponseCode);
       }
       // Free resources
