@@ -9,14 +9,19 @@ unsigned long timerDelay = 3000;
 
 int restartTime = 120000;
 
-String serverName = "https://turn-pc-on.wskoly.xyz/api/node_mcu_get_pc_status";
+//String serverName = "https://turn-pc-on.wskoly.xyz/api/node_mcu_get_pc_status";
+String serverName = "https://sing-boot-pc.wskoly.xyz/get_pc_status_esp/2/";
 
-//GPIOs like 16, 17, 18, 19, 21, 22, 23 are generally safe to use.
-int Relays[4] = {22,21,23,18};
+//22,21,23,18
+
+//4, 5, 18, 19, 21, 22, 23, 25, 26, 27, 32, and 33
+
+//0, 2, 3
+int Relays[8] = {18, 21, 22, 23, 19, 25, 26, 27};
 int timeCount = 0;
-int pcid[4];
+int pcid[8] = {-1,-1,-1,-1,-1,-1,-1,-1};
 void setup(){
-  for(int i=0; i<4; i++)
+  for(int i=0; i<8; i++)
     {
       digitalWrite(Relays[i], HIGH); 
       pinMode(Relays[i], OUTPUT);
@@ -35,7 +40,11 @@ void loop() {
       HTTPClient http;
       String serverPath = serverName;
       http.begin(serverPath.c_str());
-
+      if(WiFi.status() != WL_CONNECTED)
+      {
+        Serial.println(WiFi.status());
+        ReConnectWifi();
+      }
       int httpResponseCode = http.GET();
       
       if (httpResponseCode>0) {
@@ -46,6 +55,7 @@ void loop() {
         Serial.println(payload);
       }
       else {
+        ResetArray();
         Serial.print("Ekhane theke Error code ashtese: ");
         Serial.println(httpResponseCode);
       }
@@ -54,6 +64,7 @@ void loop() {
     }
     else {
       Serial.println("WiFi Disconnected");
+      ResetArray(); 
       ReConnectWifi();
     }
     lastTime = millis();
@@ -62,23 +73,33 @@ void loop() {
 
 void APIHandel()
 {
-  for(int i=0; i<4; i++)
+  for(int i=0; i<8; i++)
   {
-    if(pcid[i] > 0)
+    if(pcid[i] >= 0)
     {
-      TurnOnPC(pcid[i]-1);
+      TurnOnPC(i);
     }
   }
-  
+  ResetArray();  
 }
 
 void TurnOnPC(int k)
 {
   Serial.print("Turn on a ashche: ");
+  Serial.print("Relay On Hocche -- ");
   Serial.println(k);
   digitalWrite(Relays[k], LOW);
   delay(1500);
   digitalWrite(Relays[k], HIGH);
+  
+}
+
+void ResetArray()
+{
+  for(int i=0; i<8; i++)
+  {
+    pcid[i] = -1;
+  }
 }
 
 void parsePCList(String response) {
@@ -88,7 +109,8 @@ void parsePCList(String response) {
   int start = 0;
   for (int i = 0; i < response.length(); i++) {
     if (response[i] == ',' || i == response.length() - 1) {
-      pcid[index++] = response.substring(start, (i == response.length() - 1) ? i + 1 : i).toInt();
+      int recievedPin = response.substring(start, (i == response.length() - 1) ? i + 1 : i).toInt();
+      pcid[recievedPin] = 1;
       start = i + 1;
     }
   }
@@ -99,7 +121,6 @@ void parsePCList(String response) {
     Serial.print(pcid[i]);
     Serial.print(" ");
   }
-  Serial.println();
   APIHandel();
 }
 
